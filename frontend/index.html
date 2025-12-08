@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gaku – Study Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google font with extra weights -->
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    :root {
+      --orange: #ff8b3d;
+      --pink: #f97373;
+      --text-dark: #111827;
+      --border-light: #e5e7eb;
+      --bg-sidebar: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Baloo 2", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      min-height: 100vh;
+      color: var(--text-dark);
+    }
+
+    /* SIDEBAR --------------------------------------- */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-light);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .sidebar-logo {
+      text-align: center;
+    }
+
+    .sidebar-logo img {
+      max-width: 180px;
+      height: auto;
+    }
+
+    .sidebar-title {
+      font-size: 1rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-item button {
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #111827;
+    }
+
+    .nav-item button span.icon {
+      font-size: 1.1rem;
+    }
+
+    .nav-item button.active {
+      background: #e0f2fe;
+      color: #0f172a;
+    }
+
+    .nav-footer {
+      margin-top: auto;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      text-align: center;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-light);
+    }
+
+    /* MAIN AREA -------------------------------------- */
+    .main {
+      flex: 1;
+      background-image: url("/gaku_background.png");
+      background-size: 550px;
+      background-repeat: repeat;
+      background-position: top left;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-inner {
+      max-width: 960px;
+      margin: 40px auto 40px;
+      padding: 0 24px 60px;
+    }
+
+    .hero-title {
+      font-size: 2.4rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .hero-sub {
+      text-align: center;
+      color: #4b5563;
+      margin-bottom: 32px;
+    }
+
+    /* CARD / SECTION WRAPPER ------------------------- */
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 24px 24px 28px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+    }
+
+    .section-sub {
+      font-size: 0.95rem;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+
+    /* UPLOAD AREA ------------------------------------ */
+    .upload-box {
+      border: 2px dashed #cbd5e1;
+      border-radius: 18px;
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      background: #f9fafb;
+    }
+
+    .btn-primary {
+      background: var(--orange);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 10px 18px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: var(--pink);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* TABS / SECTIONS -------------------------------- */
+    .section {
+      display: none;
+      margin-top: 16px;
+    }
+    .section.active {
+      display: block;
+    }
+
+    .field-label {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: #4b5563;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    /* FORMATTED CONTENT DISPLAY */
+    .content-display {
+      width: 100%;
+      min-height: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 20px;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      background: #ffffff;
+      color: #1f2937;
+    }
+
+    .content-display:empty:before {
+      content: "Content will appear here...";
+      color: #9ca3af;
+      font-family: "Baloo 2", sans-serif;
+    }
+
+    /* Markdown styling inside content-display */
+    .content-display h1,
+    .content-display h2,
+    .content-display h3 {
+      color: #111827;
+      font-weight: 900;
+      font-family: 'Inter', sans-serif;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .content-display h1 {
+      font-size: 2rem;
+      border-bottom: 3px solid #ff8b3d;
+      padding-bottom: 8px;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .content-display h2 {
+      font-size: 1.5rem;
+      color: #1f2937;
+    }
+
+    .content-display h3 {
+      font-size: 1.2rem;
+      color: #374151;
+    }
+
+    .content-display strong {
+      font-weight: 900;
+      color: #000000;
+      font-size: 1.05em;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .content-display em {
+      font-style: italic;
+      color: #374151;
+    }
+
+    .content-display ul,
+    .content-display ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    .content-display li {
+      margin-bottom: 10px;
+      line-height: 1.8;
+    }
+
+    .content-display p {
+      margin-bottom: 16px;
+      line-height: 1.8;
+    }
+
+    .content-display code {
+      background: #f3f4f6;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #be123c;
+      font-weight: 700;
+    }
+
+    .content-display pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+
+    .content-display pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-weight: 400;
+    }
+
+    .content-display blockquote {
+      border-left: 4px solid var(--orange);
+      padding-left: 16px;
+      margin-left: 0;
+      color: #4b5563;
+      font-style: italic;
+      background: #fef3c7;
+      padding: 12px 16px;
+      border-radius: 4px;
+    }
+
+    .content-display hr {
+      border: none;
+      border-top: 2px solid #e5e7eb;
+      margin: 32px 0;
+    }
+
+    .content-display a {
+      color: var(--orange);
+      text-decoration: underline;
+      font-weight: 700;
+    }
+
+    .content-display a:hover {
+      color: var(--pink);
+    }
+
+    .info-text {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    /* SIMPLE HOURGLASS LOADER */
+    .loader {
+      display: none;
+      text-align: center;
+      margin: 16px auto;
+      font-size: 40px;
+      animation: spin-hourglass 2s linear infinite;
+    }
+
+    @keyframes spin-hourglass {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+      100% { transform: rotate(180deg); }
+    }
+
+    /* CHAT MESSAGE STYLES (NEW) --------------------- */
+    .chat-message {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .chat-message.user {
+      align-items: flex-end;
+    }
+
+    .chat-message.ai {
+      align-items: flex-start;
+    }
+
+    .message-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 0 12px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .message-bubble {
+      max-width: 75%;
+      padding: 14px 18px;
+      border-radius: 18px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      word-wrap: break-word;
+    }
+
+    .message-bubble.user {
+      background: linear-gradient(135deg, var(--orange), var(--pink));
+      color: white;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 12px rgba(255, 139, 61, 0.3);
+    }
+
+    .message-bubble.ai {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      color: var(--text-dark);
+      border-bottom-left-radius: 4px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Markdown styling in chat bubbles */
+    .message-bubble.ai strong {
+      font-weight: 900;
+      color: #000000;
+    }
+
+    .message-bubble.ai em {
+      font-style: italic;
+    }
+
+    .message-bubble.ai p {
+      margin-bottom: 8px;
+    }
+
+    .message-bubble.ai p:last-child {
+      margin-bottom: 0;
+    }
+
+    .message-bubble.ai ul,
+    .message-bubble.ai ol {
+      margin-left: 20px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    .message-bubble.ai li {
+      margin-bottom: 4px;
+    }
+
+    .message-bubble.ai code {
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #be123c;
+      font-weight: 600;
+    }
+
+    .message-bubble.ai h1,
+    .message-bubble.ai h2,
+    .message-bubble.ai h3 {
+      font-weight: 900;
+      margin-top: 12px;
+      margin-bottom: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .message-bubble.ai h1 {
+      font-size: 1.2rem;
+    }
+
+    .message-bubble.ai h2 {
+      font-size: 1.1rem;
+    }
+
+    .message-bubble.ai h3 {
+      font-size: 1rem;
+    }
+
+    /* Typing indicator (NEW) */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 14px 18px;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9ca3af;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.7;
+      }
+      30% {
+        transform: translateY(-10px);
+        opacity: 1;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="/gaku_logo.png" alt="Gaku logo" />
+    </div>
+
+    <div>
+      <p class="sidebar-title">Choose:</p>
+      <ul class="nav-list">
+        <li class="nav-item">
+          <button class="nav-btn active" data-target="section-upload">
+            <span class="icon">📤</span> Upload &amp; Transcribe
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-btn" data-target="section-summary">
+            <span class="icon">📝</span> View Summary
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-btn" data-target="section-chat">
+            <span class="icon">💬</span> Chat with AI
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-btn" data-target="section-tools">
+            <span class="icon">🎯</span> Study Tools
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="nav-footer">
+      Built with ❤️ by Jothika Pydi
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="main">
+    <div class="main-inner">
+      <h1 class="hero-title">Hi there! 👋 What do you want to study today?</h1>
+      <p class="hero-sub">Upload your lecture, get notes, and chat with Gaku about the concepts.</p>
+
+      <!-- CARD that changes content -->
+      <div class="card">
+
+        <!-- Upload & Transcribe -->
+        <section id="section-upload" class="section active">
+          <h2 class="section-title">Upload your lecture</h2>
+          <p class="section-sub">Start by uploading your audio file.</p>
+
+          <label class="field-label">Upload audio</label>
+          <div class="upload-box">
+            <div class="upload-left">
+              <div class="upload-main">Drag and drop file here</div>
+              <div class="upload-sub">
+                Limit 200MB • MP3, WAV, M4A, WEBM
+              </div>
+            </div>
+            <button class="btn-primary">Browse files</button>
+          </div>
+
+          <p class="info-text">
+            Transcription will appear below.
+          </p>
+
+          <br />
+          <label class="field-label">Transcript</label>
+          <textarea id="transcriptBox" placeholder="Transcript will appear here..."></textarea>
+        </section>
+
+        <!-- Summary -->
+        <section id="section-summary" class="section">
+          <h2 class="section-title">Lecture summary &amp; notes</h2>
+          <p class="section-sub">Your generated summary will appear here.</p>
+
+          <label class="field-label">Summary</label>
+          <div id="summaryBox" class="content-display"></div>
+        </section>
+
+        <!-- Chat -->
+        <section id="section-chat" class="section">
+          <h2 class="section-title">Chat with Gaku 🤖</h2>
+          <p class="section-sub">Ask questions about the lecture.</p>
+
+          <!-- Chat messages container -->
+          <div id="chatMessages" style="max-height: 450px; overflow-y: auto; border: 2px solid #d1d5db; border-radius: 12px; padding: 20px; margin-bottom: 16px; background: #ffffff;">
+            <p style="color: #9ca3af; text-align: center; font-size: 0.9rem;">Start a conversation with Gaku...</p>
+          </div>
+
+          <!-- Loading spinner for chat -->
+          <div id="chatLoader" class="loader"></div>
+
+          <!-- Input area -->
+          <div style="display: flex; gap: 12px; align-items: flex-end;">
+            <textarea id="chatInput" style="min-height: 70px; flex: 1; resize: none;" placeholder="Type your question here..."></textarea>
+            <button class="btn-primary" id="chatSendBtn" style="height: 70px; padding: 0 28px; white-space: nowrap;">
+              Send 💬
+            </button>
+          </div>
+
+          <p class="info-text" style="margin-top: 8px;">💡 Tip: Press Enter to send, Shift+Enter for new line</p>
+        </section>
+
+        <!-- Study Tools -->
+        <section id="section-tools" class="section">
+          <h2 class="section-title">Study tools</h2>
+          <p class="section-sub">
+            Generate quizzes or flashcards.
+          </p>
+
+          <label class="field-label">Output</label>
+          <div id="toolsBox" class="content-display"></div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Load JS from /static/app.js -->
+  <script src="/static/app.js"></script>
+
+</body>
+</html>
