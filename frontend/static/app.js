@@ -27,7 +27,9 @@ buttons.forEach(btn => {
 // ==============================
 // API BASE URL
 // ==============================
-const API = "http://127.0.0.1:5000";
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://127.0.0.1:5000'  // Local development
+  : 'https://gaku.onrender.com';  // Production on Render
 
 // ==============================
 // UTILITY: Show/Hide Loaders
