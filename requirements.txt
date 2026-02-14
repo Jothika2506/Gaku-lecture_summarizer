@@ -4,3 +4,4 @@ google-generativeai
 assemblyai
 python-dotenv
 requests
+gunicorn==21.2.0
