@@ -515,6 +515,144 @@
       }
     }
 
+    /* ============================================
+   MOBILE RESPONSIVENESS (ADD AT END OF STYLE)
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Stack layout vertically */
+  body {
+    flex-direction: column;
+  }
+  
+  /* Sidebar becomes top nav */
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: 16px;
+  }
+  
+  .sidebar-logo img {
+    max-width: 120px;
+  }
+  
+  .sidebar-title {
+    display: none; /* Hide on mobile */
+  }
+  
+  /* Horizontal nav */
+  .nav-list {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  
+  .nav-item button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  
+  .nav-item button span.icon {
+    font-size: 1rem;
+  }
+  
+  /* Hide footer on mobile */
+  .nav-footer {
+    display: none;
+  }
+  
+  /* Main area adjustments */
+  .main {
+    background-size: 300px; /* Smaller background pattern */
+  }
+  
+  .main-inner {
+    margin: 20px auto;
+    padding: 0 16px 40px;
+  }
+  
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  
+  .hero-sub {
+    font-size: 0.9rem;
+  }
+  
+  /* Card padding */
+  .card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+  
+  /* Upload box stack vertically */
+  .upload-box {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .upload-box button {
+    width: 100%;
+  }
+  
+  /* Buttons full width on mobile */
+  .btn-primary {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 1rem;
+  }
+  
+  /* Textarea adjustments */
+  textarea {
+    min-height: 180px;
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+  
+  .content-display {
+    min-height: 300px;
+    font-size: 0.9rem;
+  }
+  
+  /* Chat bubbles */
+  .message-bubble {
+    max-width: 85%;
+    font-size: 0.9rem;
+  }
+  
+  /* Chat input */
+  #chatInput {
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+  
+  #chatSendBtn {
+    padding: 0 16px;
+    font-size: 0.9rem;
+  }
+  
+  /* Study tools */
+  #quizSlider,
+  #flashcardsSlider {
+    width: 100%;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.3rem;
+  }
+  
+  .card {
+    padding: 16px 12px;
+  }
+}
+
   </style>
 </head>
 
