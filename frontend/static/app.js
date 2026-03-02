@@ -25,9 +25,13 @@ buttons.forEach(btn => {
 });
 
 // ==============================
-// API BASE URL
+// API BASE URL (PRODUCTION SAFE)
 // ==============================
-const API = "http://127.0.0.1:5000";
+
+const API =
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000"   // Local development
+    : "";                      // Production (same domain)
 
 // ==============================
 // UTILITY: Show/Hide Loaders
