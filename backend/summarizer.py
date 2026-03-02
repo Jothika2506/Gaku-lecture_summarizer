@@ -151,7 +151,7 @@ Create a comprehensive study guide from this lecture transcript. Include:
 Lecture Transcript:
 {transcript_text}
 
-Make it well-structured and easy to study from.
+Make it well-structured and easy to study from using proper Markdown formatting with headings (#, ##, ###), bold (**text**), and bullet points (-).
 """
             
             print("Generating study guide...")

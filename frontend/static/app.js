@@ -66,6 +66,7 @@ function renderMarkdown(text) {
   // Fallback if marked.js not loaded
   return text.replace(/\n/g, '<br>');
 }
+
 function disableButton(button, loadingText = "Loading...") {
   if (!button) return;
   button.dataset.originalText = button.textContent;
@@ -124,23 +125,24 @@ function downloadText(content, filename) {
   URL.revokeObjectURL(url);
 }
 
-
-
 // ==============================
 // SESSION PERSISTENCE
 // ==============================
+
+// Store raw markdown for session persistence
+let rawSummaryMarkdown = '';
+
 function saveToLocalStorage() {
   const transcript = document.getElementById("transcriptBox").value;
-  const summaryBox = document.getElementById("summaryBox");
-  const summary = summaryBox.textContent || summaryBox.innerText;
   
   if (transcript.trim()) {
     localStorage.setItem('gaku_transcript', transcript);
     localStorage.setItem('gaku_timestamp', Date.now().toString());
   }
   
-  if (summary.trim()) {
-    localStorage.setItem('gaku_summary', summary);
+  // Save RAW MARKDOWN, not rendered HTML
+  if (rawSummaryMarkdown.trim()) {
+    localStorage.setItem('gaku_summary', rawSummaryMarkdown);
   }
 }
 
@@ -157,8 +159,17 @@ function loadFromLocalStorage() {
       if (confirm('📚 Found a saved transcript from earlier today. Would you like to restore it?')) {
         document.getElementById("transcriptBox").value = transcript;
         
+        // Show download button
+        const downloadTranscriptBtn = document.getElementById("downloadTranscriptBtn");
+        if (downloadTranscriptBtn) downloadTranscriptBtn.style.display = "inline-block";
+        
         if (summary) {
+          // Store the raw markdown and render it
+          rawSummaryMarkdown = summary;
           document.getElementById("summaryBox").innerHTML = renderMarkdown(summary);
+          // Show download button
+          const downloadBtn = document.getElementById("downloadSummaryBtn");
+          if (downloadBtn) downloadBtn.style.display = "inline-block";
         }
         
         // Set context for chat
@@ -182,6 +193,7 @@ function clearLocalStorage() {
   localStorage.removeItem('gaku_transcript');
   localStorage.removeItem('gaku_summary');
   localStorage.removeItem('gaku_timestamp');
+  rawSummaryMarkdown = '';
 }
 
 // Load on page load
@@ -192,8 +204,6 @@ window.addEventListener('DOMContentLoaded', () => {
 // Save whenever transcript or summary changes
 window.addEventListener('load', () => {
   document.getElementById("transcriptBox").addEventListener('change', saveToLocalStorage);
-  
-  // For the summary div, we'll save after generation (already handled in generateSummary)
 });
 
 // Auto-save every 30 seconds
@@ -273,7 +283,7 @@ async function transcribeAudio() {
     return;
   }
 
-  const button = document.querySelector('[data-action="transcribe"]');
+  const button = document.getElementById("transcribeBtn");
   disableButton(button, "🔄 Transcribing...");
   showLoader("uploadLoader");
 
@@ -290,6 +300,10 @@ async function transcribeAudio() {
 
     if (data.status === "success") {
       document.getElementById("transcriptBox").value = data.text;
+      
+      // Show download button
+      const downloadBtn = document.getElementById("downloadTranscriptBtn");
+      if (downloadBtn) downloadBtn.style.display = "inline-block";
 
       await fetch(`${API}/set_context`, {
         method: "POST",
@@ -312,63 +326,18 @@ async function transcribeAudio() {
   }
 }
 
-// create button in UI
+// Set up transcribe button
 (function initTranscribeButton() {
-  const section = document.getElementById("section-upload");
-  
-  const infoText = Array.from(section.querySelectorAll('p')).find(p => 
-    p.textContent.includes('Transcription will appear')
-  );
-  
-  if (!infoText) {
-    console.error("Info text not found!");
-    return;
+  const transcribeBtn = document.getElementById("transcribeBtn");
+  if (transcribeBtn) {
+    transcribeBtn.onclick = transcribeAudio;
   }
   
-  const btn = document.createElement("button");
-  btn.className = "btn-primary";
-  btn.textContent = "Transcribe Now";
-  btn.dataset.action = "transcribe";
-  btn.style.marginTop = "16px";
-  btn.style.marginBottom = "12px";
-  btn.onclick = transcribeAudio;
-  
-  const loader = document.createElement("div");
-  loader.id = "uploadLoader";
-  loader.className = "loader";
-  loader.innerHTML = "⏳";
-  loader.style.fontSize = "40px";
-  loader.style.textAlign = "center";
-  loader.style.display = "none";
-  loader.style.margin = "16px auto";
-  
-  infoText.insertAdjacentElement("beforebegin", btn);
-  btn.insertAdjacentElement("afterend", loader);
-  
-  // Add download buttons transcript - wait for DOM to be ready
-  setTimeout(() => {
-    const transcriptBox = document.getElementById("transcriptBox");
-    if (!transcriptBox) {
-      console.error("Transcript box not found!");
-      return;
-    }
-    
-    // Check if buttons already exist
-    if (document.getElementById("transcriptActions")) {
-      console.log("Transcript action buttons already exist");
-      return;
-    }
-    
-    const actionButtons = document.createElement("div");
-    actionButtons.id = "transcriptActions";
-    actionButtons.style.cssText = "margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;";
-    
-    const downloadBtn = document.createElement("button");
-    downloadBtn.className = "btn-primary";
-    downloadBtn.textContent = "📥 Download Transcript";
-    downloadBtn.style.cssText = "font-size: 0.85rem; padding: 8px 14px;";
-    downloadBtn.onclick = () => {
-      const text = transcriptBox.value;
+  // Set up download transcript button handler
+  const downloadTranscriptBtn = document.getElementById("downloadTranscriptBtn");
+  if (downloadTranscriptBtn) {
+    downloadTranscriptBtn.onclick = () => {
+      const text = document.getElementById("transcriptBox").value;
       if (!text.trim()) {
         alert("⚠️ No transcript to download!");
         return;
@@ -376,20 +345,9 @@ async function transcribeAudio() {
       downloadText(text, 'lecture-transcript.txt');
       alert("✅ Transcript downloaded!");
     };
-    
-    
-    
-    actionButtons.appendChild(downloadBtn);
-    
-    
-    // Insert after textarea
-    transcriptBox.parentNode.insertBefore(actionButtons, transcriptBox.nextSibling);
-    
-    console.log("✅ Transcript action buttons created and inserted");
-    console.log("Button element:", document.getElementById("transcriptActions"));
-  }, 100);
+  }
   
-  console.log("✅ Transcribe button and actions initialized");
+  console.log("✅ Transcribe button initialized");
 })();
 
 // ==============================
@@ -400,7 +358,7 @@ async function generateSummary() {
   const text = document.getElementById("transcriptBox").value.trim();
   if (!text) return alert("Transcript is empty. Please transcribe audio first.");
 
-  const button = document.querySelector('[data-action="summary"]');
+  const button = document.getElementById("generateSummaryBtn");
   disableButton(button, "🔄 Generating...");
   showLoader("summaryLoader");
 
@@ -415,7 +373,14 @@ async function generateSummary() {
 
     if (data.status === "success") {
       const summaryBox = document.getElementById("summaryBox");
+      // STORE RAW MARKDOWN FOR SESSION PERSISTENCE
+      rawSummaryMarkdown = data.summary;
       summaryBox.innerHTML = renderMarkdown(data.summary);
+      
+      // Show download button
+      const downloadBtn = document.getElementById("downloadSummaryBtn");
+      if (downloadBtn) downloadBtn.style.display = "inline-block";
+      
       saveToLocalStorage();
       alert("✅ Summary generated successfully!");
     } else {
@@ -429,66 +394,26 @@ async function generateSummary() {
   }
 }
 
+// Set up summary button
 (function initSummaryButton() {
-  const section = document.getElementById("section-summary");
+  const generateSummaryBtn = document.getElementById("generateSummaryBtn");
+  if (generateSummaryBtn) {
+    generateSummaryBtn.onclick = generateSummary;
+  }
   
-  const loader = document.createElement("div");
-  loader.id = "summaryLoader";
-  loader.className = "loader";
-  section.insertBefore(loader, section.children[2]);
-  
-  const btn = document.createElement("button");
-  btn.className = "btn-primary";
-  btn.style.marginBottom = "16px";
-  btn.textContent = "Generate Summary";
-  btn.dataset.action = "summary";
-  btn.onclick = generateSummary;
-  loader.insertAdjacentElement("beforebegin", btn);
-  
-  // Add download buttons for summary - wait for DOM
-  setTimeout(() => {
-    const summaryBox = document.getElementById("summaryBox");
-    if (!summaryBox) {
-      console.error("Summary box not found!");
-      return;
-    }
-    
-    // Check if buttons already exist
-    if (document.getElementById("summaryActions")) {
-      console.log("Summary action buttons already exist");
-      return;
-    }
-    
-    const actionButtons = document.createElement("div");
-    actionButtons.id = "summaryActions";
-    actionButtons.style.cssText = "margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;";
-    
-    const downloadBtn = document.createElement("button");
-    downloadBtn.className = "btn-primary";
-    downloadBtn.textContent = "📥 Download Summary";
-    downloadBtn.style.cssText = "font-size: 0.85rem; padding: 8px 14px;";
+  // Set up download button handler
+  const downloadBtn = document.getElementById("downloadSummaryBtn");
+  if (downloadBtn) {
     downloadBtn.onclick = () => {
-      const summaryBox = document.getElementById("summaryBox");
-      const text = summaryBox.textContent || summaryBox.innerText;
-      if (!text.trim()) {
-        alert("⚠️ No summary to download!");
+      // Download the raw markdown, not the rendered HTML
+      if (!rawSummaryMarkdown.trim()) {
+        alert("⚠️ No summary to download! Generate a summary first.");
         return;
       }
-      downloadText(text, 'lecture-summary.txt');
+      downloadText(rawSummaryMarkdown, 'lecture-summary.txt');
       alert("✅ Summary downloaded!");
     };
-    
-    
-    
-    actionButtons.appendChild(downloadBtn);
-    
-    
-    // Insert after textarea
-    summaryBox.parentNode.insertBefore(actionButtons, summaryBox.nextSibling);
-    
-    console.log("✅ Summary action buttons created and inserted");
-    console.log("Button element:", document.getElementById("summaryActions"));
-  }, 100);
+  }
   
   console.log("✅ Summary buttons initialized");
 })();
@@ -622,7 +547,6 @@ async function sendChatMessage() {
   chatInput.disabled = true;
   
   showTypingIndicator();
-  showLoader("chatLoader");
 
   try {
     const res = await fetch(`${API}/chat`, {
@@ -653,7 +577,6 @@ async function sendChatMessage() {
     isChatting = false;
     enableButton(chatSendBtn);
     chatInput.disabled = false;
-    hideLoader("chatLoader");
     chatInput.focus();
   }
 }
@@ -688,25 +611,23 @@ async function generateQuiz() {
   
   const num = parseInt(document.getElementById("quizSlider").value);
 
-  const button = document.querySelector('[data-action="quiz"]');
+  const button = document.getElementById("quizBtn");
   disableButton(button, "🔄 Generating Quiz...");
-  showLoader("quizLoader");
 
   function convertQuizToMarkdown(text) {
-  if (!text) return "";
+    if (!text) return "";
 
-  // Convert all lines of underscores to markdown horizontal lines
-  text = text.replace(/_{5,}/g, '---');
+    // Convert all lines of underscores to markdown horizontal lines
+    text = text.replace(/_{5,}/g, '---');
 
-  // Add markdown headers for QUESTION X
-  text = text.replace(/QUESTION (\d+)/g, '## QUESTION $1');
+    // Add markdown headers for QUESTION X
+    text = text.replace(/QUESTION (\d+)/g, '## QUESTION $1');
 
-  // Bold the correct answer line
-  text = text.replace(/CORRECT ANSWER:/g, '**CORRECT ANSWER:**');
+    // Bold the correct answer line
+    text = text.replace(/CORRECT ANSWER:/g, '**CORRECT ANSWER:**');
 
-  return text;
-}
-
+    return text;
+  }
 
   try {
     const res = await fetch(`${API}/quiz`, {
@@ -728,7 +649,6 @@ async function generateQuiz() {
     document.getElementById("toolsBox").textContent = "❌ Error: " + error.message;
   } finally {
     enableButton(button);
-    hideLoader("quizLoader");
   }
 }
 
@@ -742,9 +662,8 @@ async function generateFlashcards() {
   // Read from slider (NOT prompt)
   const num = parseInt(document.getElementById("flashcardsSlider").value);
 
-  const button = document.querySelector('[data-action="flashcards"]');
+  const button = document.getElementById("flashcardsBtn");
   disableButton(button, "🔄 Creating...");
-  showLoader("flashcardsLoader");
 
   try {
     const res = await fetch(`${API}/flashcards`, {
@@ -765,90 +684,37 @@ async function generateFlashcards() {
     document.getElementById("toolsBox").textContent = "❌ Error: " + error.message;
   } finally {
     enableButton(button);
-    hideLoader("flashcardsLoader");
   }
 }
 
 (function initToolsButtons() {
-  const sec = document.getElementById("section-tools");
+  // Quiz
+  const quizSlider = document.getElementById("quizSlider");
+  const quizValue = document.getElementById("quizValue");
+  if (quizSlider && quizValue) {
+    quizSlider.oninput = () => {
+      quizValue.textContent = quizSlider.value;
+    };
+  }
 
-  const quizLoader = document.createElement("div");
-  quizLoader.id = "quizLoader";
-  quizLoader.className = "loader";
-  
-  const flashcardsLoader = document.createElement("div");
-  flashcardsLoader.id = "flashcardsLoader";
-  flashcardsLoader.className = "loader";
+  const quizBtn = document.getElementById("quizBtn");
+  if (quizBtn) {
+    quizBtn.onclick = generateQuiz;
+  }
 
-  // Quiz controls
-  const quizControls = document.createElement("div");
-  quizControls.style.cssText = "margin-bottom: 12px;";
-  
-  const quizLabel = document.createElement("label");
-  quizLabel.style.cssText = "display: block; font-size: 0.9rem; margin-bottom: 6px; color: #4b5563;";
-  quizLabel.innerHTML = 'Number of Quiz Questions: <span id="quizValue" style="font-weight: 600; color: #ff8b3d;">5</span>';
-  
-  const quizSlider = document.createElement("input");
-  quizSlider.type = "range";
-  quizSlider.id = "quizSlider";
-  quizSlider.min = "1";
-  quizSlider.max = "20";
-  quizSlider.value = "5";
-  quizSlider.style.cssText = "width: 100%; margin-bottom: 8px;";
-  quizSlider.oninput = () => {
-    document.getElementById("quizValue").textContent = quizSlider.value;
-  };
-  
-  quizControls.appendChild(quizLabel);
-  quizControls.appendChild(quizSlider);
+  // Flashcards
+  const flashcardsSlider = document.getElementById("flashcardsSlider");
+  const flashcardsValue = document.getElementById("flashcardsValue");
+  if (flashcardsSlider && flashcardsValue) {
+    flashcardsSlider.oninput = () => {
+      flashcardsValue.textContent = flashcardsSlider.value;
+    };
+  }
 
-  // Flashcards controls
-  const flashcardsControls = document.createElement("div");
-  flashcardsControls.style.cssText = "margin-bottom: 12px; margin-top: 16px;";
-  
-  const flashcardsLabel = document.createElement("label");
-  flashcardsLabel.style.cssText = "display: block; font-size: 0.9rem; margin-bottom: 6px; color: #4b5563;";
-  flashcardsLabel.innerHTML = 'Number of Flashcards: <span id="flashcardsValue" style="font-weight: 600; color: #ff8b3d;">10</span>';
-  
-  const flashcardsSlider = document.createElement("input");
-  flashcardsSlider.type = "range";
-  flashcardsSlider.id = "flashcardsSlider";
-  flashcardsSlider.min = "1";
-  flashcardsSlider.max = "30";
-  flashcardsSlider.value = "10";
-  flashcardsSlider.style.cssText = "width: 100%; margin-bottom: 8px;";
-  flashcardsSlider.oninput = () => {
-    document.getElementById("flashcardsValue").textContent = flashcardsSlider.value;
-  };
-  
-  flashcardsControls.appendChild(flashcardsLabel);
-  flashcardsControls.appendChild(flashcardsSlider);
+  const flashcardsBtn = document.getElementById("flashcardsBtn");
+  if (flashcardsBtn) {
+    flashcardsBtn.onclick = generateFlashcards;
+  }
 
-  // Buttons
-  const quizBtn = document.createElement("button");
-  quizBtn.className = "btn-primary";
-  quizBtn.textContent = "📝 Generate Quiz";
-  quizBtn.dataset.action = "quiz";
-  quizBtn.onclick = generateQuiz;
-
-  const flashcardsBtn = document.createElement("button");
-  flashcardsBtn.className = "btn-primary";
-  flashcardsBtn.textContent = "🎴 Generate Flashcards";
-  flashcardsBtn.style.marginLeft = "12px";
-  flashcardsBtn.dataset.action = "flashcards";
-  flashcardsBtn.onclick = generateFlashcards;
-
-  const buttonContainer = document.createElement("div");
-  buttonContainer.style.marginBottom = "16px";
-  buttonContainer.style.display = "flex";
-  buttonContainer.style.flexWrap = "wrap";
-  buttonContainer.style.gap = "12px";
-  buttonContainer.appendChild(quizBtn);
-  buttonContainer.appendChild(flashcardsBtn);
-  
-  sec.insertBefore(quizControls, sec.children[2]);
-  sec.insertBefore(flashcardsControls, sec.children[3]);
-  sec.insertBefore(buttonContainer, sec.children[4]);
-  sec.insertBefore(quizLoader, sec.children[5]);
-  sec.insertBefore(flashcardsLoader, sec.children[6]);
+  console.log("✅ Study tools buttons initialized");
 })();
